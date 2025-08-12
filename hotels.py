@@ -4,19 +4,30 @@ from schemas.hotels import Hotel, HotelPatch
 router = APIRouter(prefix="/hotels")
 hotels = [
     {"id": 1, "title": "Sochi", "name": "sochi"},
-    {"id": 2, "title": "Dubai", "name": "dubai"},
-    {"id": 3, "title": "Moscow", "name": "moscow"},
+    {"id": 2, "title": "Дубай", "name": "dubai"},
+    {"id": 3, "title": "Мальдивы", "name": "maldivi"},
+    {"id": 4, "title": "Геленджик", "name": "gelendzhik"},
+    {"id": 5, "title": "Москва", "name": "moscow"},
+    {"id": 6, "title": "Казань", "name": "kazan"},
+    {"id": 7, "title": "Санкт-Петербург", "name": "spb"},
 ]
 
 @router.get("")
 def get_hotels(
         id: int | None = Query(None, description="Айдишник"),
         title: str | None= Query(None, description="Название отеля"),
+        page: int = Query(1),
+        per_page: int = Query(3),
 ):
-    if id and title:
-        return [hotel for hotel in hotels if hotel["title"] == title and hotel["id"] == id]
-    else:
-        return hotels
+    global hotels
+    filtered = hotels
+    if id:
+        filtered = [hotel for hotel in hotels if id == hotels["id"]]
+    if title:
+        filtered = [hotel for hotel in hotels if title == hotels["title"]]
+    start = (page - 1) * per_page
+    end = start + per_page
+    return filtered[start:end]
 
 @router.delete("/{hotel_id}")
 def delete_hotel(hotel_id: int):
