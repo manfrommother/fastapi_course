@@ -1,6 +1,5 @@
 from fastapi import Query, Body, APIRouter
 
-from sqlalchemy import insert, select
 
 from src.database import async_session_maker
 from src.models.hotels import HotelsOrm
@@ -26,13 +25,18 @@ async def get_hotels(
             offset=per_page * (pagination.page - 1)
         )
 
+@router.get("/hotels/{hotel_id}")
+async def get_hotel_by_id(hotel_id: int):
+    async with async_session_maker() as session:
+        return await HotelsRepository(session).get_by_id(hotel_id)
+
 
 @router.delete("/{hotel_id}")
 async def delete_hotel(hotel_id: int):
     async with async_session_maker() as session:
-        repo = HotelsRepository(session)
-        await repo.delete(id=hotel_id)
+        await HotelsRepository(session).delete(id=hotel_id)
         await session.commit()
+
     return {"status": "OK"}
 
 @router.post("")
@@ -53,19 +57,16 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     return {"status": "OK", "data": hotel}
 
 @router.put("/{hotel_id}")
-async def update_hotel_info(hotel_id: int, hotel_data: Hotel):
+async def edit_hotel(hotel_id: int, hotel_data: Hotel):
     async with async_session_maker() as session:
-        await HotelsRepository(session).edit(data=hotel_data, id=hotel_id)
+        await HotelsRepository(session).edit(hotel_data, id=hotel_id)
         await session.commit()
 
     return {"status": "OK"}
 
 @router.patch("/{hotel_id}")
-def update_hotel_info(hotel_id: int, hotel_data: HotelPatch):
-    global hotels
-    hotel = [hotel for hotel in hotels if hotel["id"] == hotel_id][0]
-    if hotel_data.title:
-        hotel["title"] = hotel_data.title
-    if hotel_data.name:
-        hotel["name"] = hotel_data.name
+async def partially_edit_hotel(hotel_id: int, hotel_data: HotelPatch):
+    async with async_session_maker() as session:
+        await HotelsRepository(session).edit(hotel_data, exclude_unset=True, id=hotel_id)
+        await session.commit()
     return {"status": "OK"}

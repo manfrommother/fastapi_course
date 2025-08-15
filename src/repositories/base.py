@@ -1,4 +1,3 @@
-from fastapi import HTTPException
 from sqlalchemy import select, insert, update, delete
 from pydantic import BaseModel
 
@@ -13,6 +12,11 @@ class BaseRepository:
         result = await self.session.execute(query)
         return result.scalars().all()
 
+    async def get_by_id(self, id: int):
+        query = select(self.model).filter_by(id=id)
+        result = await self.session.execute(query)
+        return result.scalars().one()
+
     async def get_one_or_none(self, **filtered_by):
         query = select(self.model).filter_by(**filtered_by)
         result = await self.session.execute(query)
@@ -23,31 +27,15 @@ class BaseRepository:
         result = await self.session.execute(stm_add)
         return result.scalars().one()
 
-    async def edit(self, data: BaseModel, **filtered_by):
-        count_stm = select(self.model).filter_by(**filtered_by)
-        result = await self.session.execute(count_stm)
-        matches = result.scalars().all()
-        if not matches:
-            raise HTTPException(status_code=404)
-        if len(matches) > 1:
-            raise HTTPException(status_code=422)
-        query = (
+    async def edit(self, data: BaseModel, exclude_unset: bool = False, **filtered_by):
+        update_stmt = (
             update(self.model)
             .filter_by(**filtered_by)
-            .values(**data.model_dump())
+            .values(**data
+                    .model_dump(exclude_unset=exclude_unset))
         )
-        await self.session.execute(query)
+        await self.session.execute(update_stmt)
 
     async def delete(self, **filtered_by):
-        count_stm = select(self.model).filter_by(**filtered_by)
-        result = await self.session.execute(count_stm)
-        matches = result.scalars().all()
-        if not matches:
-            raise HTTPException(status_code=404)
-        if len(matches) > 1:
-            raise HTTPException(status_code=422)
-        query = (
-            delete(self.model)
-            .filter_by(**filtered_by)
-        )
-        await self.session.execute(query)
+        delete_stmt = delete(self.model).filter_by(**filtered_by)
+        await self.session.execute(delete_stmt)
