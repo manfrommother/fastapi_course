@@ -1,4 +1,5 @@
-.idea
 venv
-__pycache__/
+.idea
+__pycache__
 .env
+celerybeat-schedule.db
