@@ -2,7 +2,6 @@ from fastapi import Query, Body, APIRouter
 
 
 from src.database import async_session_maker
-from src.models.hotels import HotelsOrm
 from src.repositories.hotels import HotelsRepository
 from src.schemas.hotels import Hotel, HotelPatch, HotelAdd
 from src.api.dependencies import PaginationDep
@@ -25,7 +24,7 @@ async def get_hotels(
             offset=per_page * (pagination.page - 1)
         )
 
-@router.get("/hotels/{hotel_id}")
+@router.get("/{hotel_id}")
 async def get_hotel_by_id(hotel_id: int):
     async with async_session_maker() as session:
         return await HotelsRepository(session).get_one_or_none(id=hotel_id)
