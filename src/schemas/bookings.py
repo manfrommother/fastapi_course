@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import date
 
 
-class BookingRequest(BaseModel):
+class BookingAddRequest(BaseModel):
     date_from: date
     date_to: date
     room_id: int
