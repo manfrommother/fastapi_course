@@ -2,9 +2,7 @@ from datetime import date
 
 from fastapi import Query, Body, APIRouter
 
-from src.database import async_session_maker
-from src.repositories.hotels import HotelsRepository
-from src.schemas.hotels import Hotel, HotelPatch, HotelAdd
+from src.schemas.hotels import HotelPatch, HotelAdd
 from src.api.dependencies import PaginationDep, DBDep
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
