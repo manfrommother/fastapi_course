@@ -44,22 +44,9 @@ async def delete_rooms(hotel_id: int, room_id: int, db: DBDep):
 @router.put("/{hotel_id}/rooms/{room_id}")
 async def edit_rooms(hotel_id: int, room_id: int, room_data: RoomAddRequest, db: DBDep):
     _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
+
     await db.rooms.edit(_room_data, id=room_id)
-    # Обновление удобств комнаты (дифф)
-    if room_data.facilities_ids is not None:
-        existing = await db.rooms_facilities.get_filtered(rooms_id=room_id)
-        existing_ids = {item.facility_id for item in existing}
-        new_ids = set(room_data.facilities_ids)
-
-        to_add = new_ids - existing_ids
-        to_remove = existing_ids - new_ids
-
-        if to_add:
-            add_payload = [RoomsFacilityAdd(rooms_id=room_id, facility_id=fid) for fid in to_add]
-            await db.rooms_facilities.add_bulk(add_payload)
-        if to_remove:
-            for fid in to_remove:
-                await db.rooms_facilities.delete(rooms_id=room_id, facility_id=fid)
+    await db.rooms_facilities.set_room_facilities(room_id, facilities_ids=room_data.facilities_ids)
     await db.commit()
 
     return {"status": "OK"}
@@ -71,23 +58,12 @@ async def partially_edit_room(
         room_data: RoomPatchRequest,
         db: DBDep
 ):
-    _room_data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
+    _room_data_dict = room_data.model_dump(exclude_unset=True)
+    _room_data = RoomPatch(hotel_id=hotel_id, **_room_data_dict)
     await db.rooms.edit(_room_data, exclude_unset=True ,id=room_id, hotel_id=hotel_id)
-    # Обновление удобств комнаты (дифф), только если поле передано
-    if room_data.facilities_ids is not None:
-        existing = await db.rooms_facilities.get_filtered(rooms_id=room_id)
-        existing_ids = {item.facility_id for item in existing}
-        new_ids = set(room_data.facilities_ids)
 
-        to_add = new_ids - existing_ids
-        to_remove = existing_ids - new_ids
-
-        if to_add:
-            add_payload = [RoomsFacilityAdd(rooms_id=room_id, facility_id=fid) for fid in to_add]
-            await db.rooms_facilities.add_bulk(add_payload)
-        if to_remove:
-            for fid in to_remove:
-                await db.rooms_facilities.delete(rooms_id=room_id, facility_id=fid)
+    if "facilities_ids" in _room_data_dict:
+        await db.rooms_facilities.set_room_facilities(room_id, facilities_ids=_room_data_dict["facilities_ids"])
     await db.commit()
 
     return {"status": "OK"}
